@@ -13,7 +13,7 @@ figsize = (28,12)
 
 def __main__():
     # Load data
-    data = pd.read_csv("inputs/cleavland_plot_dataset.csv", sep= ",", encoding="UTF-8")
+    data = pd.read_csv("inputs/cleveland_plot_dataset.csv", sep= ",", encoding="UTF-8")
     
     # Hold final figures in a list
     figs = []
@@ -110,10 +110,10 @@ def __main__():
     
     
     # Finally, save figures to PDF
-    with PdfPages('outputs/cleavland-plots/all.pdf') as pdf:
+    with PdfPages('outputs/cleveland-plots/all.pdf') as pdf:
         names = ['main', 'blm']
         for fig in figs:
             pdf.savefig(fig)
             # Plus, save each figure separately
-            fig.savefig('outputs/cleavland-plots/' + names.pop(0) + '.png')
+            fig.savefig('outputs/cleveland-plots/' + names.pop(0) + '.png')
 __main__()
