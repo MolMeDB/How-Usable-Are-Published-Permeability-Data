@@ -14,7 +14,7 @@ data <- read.csv("inputs/prepared_MolMeDB_dataset.csv", header = TRUE, sep = ";"
 
 config = rev(within(list(), {
   method_groups   = c("PerMM", "COSMOperm", "BLM", "CACO-2", "MDCK", "EPAM", "EPAMOL")
-  method_labels   = c("PerMM", "COSMOperm", "BLM/Liposomes","CACO-2", "MDCK", "PAMPA", "PAMPA")
+  method_labels   = c("PerMM", "COSMOperm", "BLM/Liposomes","CACO-2", "MDCK", "PAMPA (app.)", "PAMPA (intr.)")
   groups_col      = c(rep("1", 5), rep("2", 2))
   datasets_keys   = list("BLM" = c("PERMM_COSMO", "PerMM", "MDCK"), 
                       "PAMPA" = c("MDCK_CACO", "BLM", "PerMM", "MDCK"),
@@ -204,46 +204,92 @@ for(ds1 in names(config$datasets_keys))
 
 # CACO-2 vs. MDCK vs. PAMPA
 model_data = PAMPA_and_MDCK_CACO[PAMPA_and_MDCK_CACO$SMILES != 'x',]
-r_squared <- get_r2(model_data)
-total_rows = length(unique(model_data$SMILES))
-# Inclusion of only apparent PAMPA
-s_data = model_data[model_data$PAMPA_label != "EPAMOL", ]
-r_squared_app = get_r2(s_data)
-total_app = length(unique(s_data$SMILES))
+
+# Distinct between apparent and intr. PAMPA
+model_data_app = model_data[model_data$PAMPA_label != "EPAMOL", ]
+
+r_squared <- get_r2(model_data_app)
+total_rows = length(unique(model_data_app$SMILES))
 # Inclusion of only MDCK
-s_data = model_data[model_data$method_label.x.y != "CACO-2", ]
+s_data = model_data_app[model_data_app$method_label.x.y != "CACO-2", ]
 r_squared_MDCK = get_r2(s_data)
 # Inclusion of only CACO-2
-s_data = model_data[model_data$method_label.x.y != "MDCK", ]
+s_data = model_data_app[model_data_app$method_label.x.y != "MDCK", ]
 r_squared_CACO = get_r2(s_data)
-  
-plot_PAMPA_x_MDCK_x_CACO <-ggplot(PAMPA_and_MDCK_CACO, aes(value_for_plot.x, value_for_plot.y, color = color_label)) +
-  geom_point(aes(color = color_label, size = color_label, shape=PAMPA_label), size = 3) +
+
+## Add points for proper visualisation
+model_data_app = model_data_app %>% add_row(SMILES = "x", value_for_plot.x = -16, value_for_plot.y = 7, x_1_summ = -15, x_1_diff = -17)
+model_data_app = model_data_app %>% add_row(SMILES = "x", value_for_plot.x = 7, value_for_plot.y = 16, x_1_summ = 8, x_1_diff = 6)
+
+
+plot_PAMPA_x_MDCK_x_CACO <-ggplot(model_data_app, aes(value_for_plot.x, value_for_plot.y, color = color_label)) +
+  geom_point(aes(color = color_label), size = 3) +
   coord_cartesian(xlim = c(-16, 7.5), ylim = c(-16, 7.5)) +
   scale_shape_manual(values=c(16, 3)) +
-  labs(title = "B")+
+  labs(title = "C")+
   theme_bw()+
   geom_point(size = 2)+
-  annotate("text", label= deparse(bquote(R^list(2, n== .(total_rows)) ~"=" ~ .(r_squared))), x=-8, y=5, size = 8, parse = TRUE) +
-  annotate("text", label= deparse(bquote(R[app]^list(2, n==.(total_app))  ~"=" ~ .(r_squared_app))), x=-8, y=1.5, size = 8, parse = TRUE) +
+  annotate("text", label= deparse(bquote(R[app]^list(2, n==.(total_rows))  ~"=" ~ .(r_squared))), x=-8, y=1.5, size = 8, parse = TRUE) +
   annotate("text", label= deparse(bquote(R[MDCK]^2 ~"=" ~ .(r_squared_MDCK))), x=0.5, y=-12, size = 8, parse = TRUE) +
   annotate("text", label= deparse(bquote(R[CACO-2]^2 ~"=" ~ .(r_squared_CACO))), x=0, y=-14.5, size = 8, parse = TRUE) +
   scale_color_identity()+
   scale_y_continuous(breaks = seq(-16, 7.5, by=4), sec.axis = dup_axis(name = "LogPerm MDCK (cm/s)" ))+
   scale_x_continuous(breaks = seq(-16, 7.5, by=4))+
-  labs(y = "LogPerm CACO-2 (cm/s)", x = "LogPerm PAMPA (cm/s)")+
+  labs(y = "LogPerm CACO-2 (cm/s)", x = "LogPerm PAMPA (app.) (cm/s)")+
   geom_line(aes(x = value_for_plot.x, y = x_1_summ), linetype = "dashed", colour = "black", size = 0.75)+
   geom_line(aes(x = value_for_plot.x, y = x_1_diff), linetype = "dashed", colour = "black", size = 0.75)+
   geom_line(aes(x = value_for_plot.x, y = value_for_plot.x, colour = "black"))+
   theme(axis.title=element_text(size=29),
         axis.text=element_text(size=20),
         plot.title=element_text(size=30),
-        axis.line.x = element_line(linewidth = 2, colour = config$colors$PAMPA, linetype="solid"),
-        axis.line.y.left = element_line(linewidth = 2, colour = config$colors$`CACO-2`, linetype="solid"),
-        axis.line.y.right = element_line(linewidth = 2, colour = config$colors$MDCK, linetype="solid"),
+        axis.line.x = element_line(size = 2, colour = "lightskyblue", linetype="solid"),
+        axis.line.y.left = element_line(size = 2, colour = "deeppink3", linetype="solid"),
+        axis.line.y.right = element_line(size = 2, colour = "darkmagenta", linetype="solid"),
         legend.position = "none")
-  
 plot_PAMPA_x_MDCK_x_CACO
+  
+# Distinct between apparent and intr. PAMPA
+model_data_int = model_data[model_data$PAMPA_label != "EPAM", ]
+
+r_squared <- get_r2(model_data_int)
+total_rows = length(unique(model_data_int$SMILES))
+# Inclusion of only MDCK
+s_data = model_data_int[model_data_int$method_label.x.y != "CACO-2", ]
+r_squared_MDCK = get_r2(s_data)
+# Inclusion of only CACO-2
+s_data = model_data_int[model_data_int$method_label.x.y != "MDCK", ]
+r_squared_CACO = get_r2(s_data)
+
+## Add points for proper visualisation
+model_data_int = model_data_int %>% add_row(SMILES = "x", value_for_plot.x = -16, value_for_plot.y = 7, x_1_summ = -15, x_1_diff = -17)
+model_data_int = model_data_int %>% add_row(SMILES = "x", value_for_plot.x = 7, value_for_plot.y = 16, x_1_summ = 8, x_1_diff = 6)
+
+  
+plot_PAMPA_x_MDCK_x_CACO_int <-ggplot(model_data_int, aes(value_for_plot.x, value_for_plot.y, color = color_label)) +
+  geom_point(aes(color = color_label), size = 3) +
+  coord_cartesian(xlim = c(-16, 7.5), ylim = c(-16, 7.5)) +
+  scale_shape_manual(values=c(16, 3)) +
+  labs(title = "B")+
+  theme_bw()+
+  geom_point(size = 2)+
+  annotate("text", label= deparse(bquote(R[intr]^list(2, n==.(total_rows))  ~"=" ~ .(r_squared))), x=-8, y=1.5, size = 8, parse = TRUE) +
+  annotate("text", label= deparse(bquote(R[MDCK]^2 ~"=" ~ .(r_squared_MDCK))), x=0.5, y=-12, size = 8, parse = TRUE) +
+  annotate("text", label= deparse(bquote(R[CACO-2]^2 ~"=" ~ .(r_squared_CACO))), x=0, y=-14.5, size = 8, parse = TRUE) +
+  scale_color_identity()+
+  scale_y_continuous(breaks = seq(-16, 7.5, by=4), sec.axis = dup_axis(name = "LogPerm MDCK (cm/s)" ))+
+  scale_x_continuous(breaks = seq(-16, 7.5, by=4))+
+  labs(y = "LogPerm CACO-2 (cm/s)", x = "LogPerm PAMPA (intr.) (cm/s)")+
+  geom_line(aes(x = value_for_plot.x, y = x_1_summ), linetype = "dashed", colour = "black", size = 0.75)+
+  geom_line(aes(x = value_for_plot.x, y = x_1_diff), linetype = "dashed", colour = "black", size = 0.75)+
+  geom_line(aes(x = value_for_plot.x, y = value_for_plot.x, colour = "black"))+
+  theme(axis.title=element_text(size=29),
+        axis.text=element_text(size=20),
+        plot.title=element_text(size=30),
+        axis.line.x = element_line(size = 2, colour = "navy", linetype="solid"),
+        axis.line.y.left = element_line(size = 2, colour = "deeppink3", linetype="solid"),
+        axis.line.y.right = element_line(size = 2, colour = "darkmagenta", linetype="solid"),
+        legend.position = "none")
+plot_PAMPA_x_MDCK_x_CACO_int
 
 
 # Cosmo vs. PerMM vs BLM
@@ -283,3 +329,14 @@ plot_BLM_x_PERMM_x_COSMO <-ggplot(BLM_and_PERMM_COSMO, aes(value_for_plot.x, val
         axis.line.y.right = element_line(size = 2, colour = config$colors$COSMOperm, linetype="solid"))
 
 plot_BLM_x_PERMM_x_COSMO
+
+
+# pdf(file="outputs/scatter plots/PAMPAapp_x_MDCK_CACO.pdf",
+#     width=16,
+#     height = 12)
+
+# plot_PAMPA_x_MDCK_x_CACO
+
+# get("plot_COSMOperm_x_CACO-2")
+
+# dev.off()
