@@ -66,6 +66,9 @@ for (i in 1:length(config$method_groups))
   # If difference between logPerm and logPerm_mean > 2 use logPerm, else logPerm_mean
   mean$value_for_plot <- ifelse(mean$diff > 2,mean$LogPerm ,
                                     ifelse(mean$diff < 2,mean$LogPerm_mean, mean$LogPerm))
+
+  # Remove duplicities
+  mean <- distinct(mean, identifier, value_for_plot, .keep_all = TRUE)
   
   # PAMPA methods - combine them...
   if (config$groups_col[i] == "2" && exists("d_PAMPA")) 
